@@ -6,41 +6,28 @@
 <title>FridgeVibe</title>
 <script src="https://cdn.tailwindcss.com"></script>
 </head>
-
 <body class="bg-black text-white p-6">
-
 <h1 class="text-3xl mb-4">🥶 FridgeVibe</h1>
-
-<!-- DIET OPTIONS -->
 <div id="diet"></div>
-
-<!-- INPUT -->
 <input id="input" class="p-2 text-black" placeholder="add ingredient">
 <button onclick="addIngredient()" class="bg-green-500 px-4 py-2">Add</button>
-
-<!-- CAMERA BUTTON -->
 <button onclick="openCamera()" class="bg-blue-500 px-4 py-2 ml-2">📷 Camera</button>
-
-<!-- LIST -->
 <div id="list" class="mt-4"></div>
-
-<!-- RESULTS -->
 <div id="results" class="mt-6"></div>
-
 <script>
-
 let ingredients = [];
 let diets = ["vegan","vegetarian","gluten-free","dairy-free","keto"];
-
 function renderDiets(){
 document.getElementById("diet").innerHTML =
-diets.map(d => <button onclick="toggleDiet('${d}')" class="border px-3 py-1 m-1"> ${d} </button>).join("");
+diets.map(d => '
+<button onclick="toggleDiet('${d}')" class="border px-3 py-1 m-1"> 
+${d} 
+</button>
+').join("");
 }
-
 function toggleDiet(d){
 alert("Selected: " + d);
 }
-
 function addIngredient(){
 const val = document.getElementById("input").value.trim();
 if(!val) return;
@@ -48,20 +35,19 @@ ingredients.push(val);
 document.getElementById("input").value = "";
 render();
 }
-
 function render(){
 document.getElementById("list").innerHTML =
-ingredients.map(i => <div class="bg-zinc-800 px-3 py-1 inline-block m-1 rounded"> ${i} </div>).join("");
+ingredients.map(i => 
+<div class="bg-zinc-800 px-3 py-1 inline-block m-1 rounded">
+${i} 
+</div>
+').join("");
 }
-
 function openCamera(){
 alert("Camera would open here (needs HTTPS + permissions)");
 }
-
 renderDiets();
 render();
-
 </script>
-
 </body>
 </html>
