@@ -201,9 +201,47 @@
                             recipeIngredients.push(recipe[key].toLowerCase().trim());
                         }
                     }
-                    let have = [];
-                    let missing = [];
-                    recipeIngredients.forEach(rIng => {
+                    let user = ingredients.map(i => i.toLowerCase());
+let matches = 0;
+let strongMatches = 0;
+/* smarter ingredient matching */
+for (let ui of user) {
+  let found = false;
+  for (let ri of recipeIngredients) {
+
+    // EXACT or close match (strong)
+    if (ri === ui) {
+      strongMatches++;
+      found = true;
+      break;
+    }
+    // partial match (weaker but valid)
+    if (ri.includes(ui) || ui.includes(ri)) {
+      matches++;
+      found = true;
+      break;
+    }
+  }
+}
+/* realism filter (THIS is the key fix) */
+let totalScore = (strongMatches * 2) + matches;
+/* minimum quality gate */
+if (totalScore < 2) return;   // 🚨 removes junk like saffron outliers
+let matchScore = Math.min(
+  100,
+  Math.round((totalScore / (user.length * 2)) * 100)
+);
+/* build realistic have/missing lists */
+let have = [];
+let missing = [];
+recipeIngredients.forEach(rIng => {
+  let matched = user.some(ui =>
+    rIng === ui || rIng.includes(ui) || ui.includes(rIng)
+  );
+
+  if (matched) have.push(rIng);
+  else missing.push(rIng);
+}); => {
                         const found = ingredients.some(my => rIng.includes(my) || my.includes(rIng));
                         if (found) have.push(rIng);
                         else missing.push(rIng);
