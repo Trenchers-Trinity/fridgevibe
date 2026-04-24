@@ -1,50 +1,55 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
- <title>FridgeVibe</title>
-<script src="https://cdn.tailwindcss.com"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FridgeVibe</title>
+    <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-black text-white p-6">
-<h1 class="text-3xl mb-4">🥶 FridgeVibe</h1>
- <!-- Diet Filters -->
-<div id="diet"></div>
+<body class="bg-zinc-950 text-white p-6 max-w-4xl mx-auto">
+    <h1 class="text-4xl font-bold mb-8 flex items-center gap-3">
+        🥶 FridgeVibe
+    </h1>
+    <!-- Diet Filters -->
+    <div id="diet" class="flex flex-wrap gap-2 mb-8"></div>
     <!-- Ingredient Input -->
-<div class="mt-6 flex gap-3">
-<input id="input" 
-class="flex-1 p-4 bg-zinc-800 text-white rounded-2xl focus:outline-none focus:border-emerald-500" 
-    placeholder="Add ingredient (e.g. chicken, rice)">
-        
+    <div class="flex gap-3 mb-8">
+        <input id="input" 
+               class="flex-1 bg-zinc-900 border border-zinc-700 rounded-2xl px-6 py-4 text-lg focus:outline-none focus:border-emerald-500" 
+               placeholder="Add ingredient (e.g. chicken, rice, spinach)">      
         <button onclick="addIngredient()" 
-                class="bg-green-500 hover:bg-green-600 px-8 py-4 rounded-2xl font-medium">
+                class="bg-emerald-500 hover:bg-emerald-600 px-8 py-4 rounded-2xl font-medium">
             Add
-        </button>
-            <button onclick="openCamera()" 
-                class="bg-blue-500 hover:bg-blue-600 px-8 py-4 rounded-2xl font-medium">
+        </button> 
+        <button onclick="openCamera()" 
+                class="bg-blue-600 hover:bg-blue-700 px-8 py-4 rounded-2xl font-medium flex items-center gap-2">
             📷 Camera
         </button>
     </div>
-<!-- Ingredients List -->
-    <div id="list" class="mt-8 flex flex-wrap gap-3"></div>
-<!-- Results -->
-    <div id="results" class="mt-10"></div>
-<script>
+    <!-- Ingredients List -->
+    <div id="list" class="flex flex-wrap gap-3 mb-10"></div>
+
+    <!-- Search Button -->
+    <button onclick="findRecipes()" 
+            class="w-full bg-white text-black font-semibold py-5 rounded-3xl text-xl mb-10 hover:bg-emerald-400 transition">
+        🔍 Find Matching Recipes
+    </button>
+    <!-- Results -->
+    <div id="results" class="grid grid-cols-1 md:grid-cols-2 gap-6"></div>
+    <script>
         let ingredients = [];
         let selectedDiets = [];
-
         const diets = ["vegan", "vegetarian", "gluten-free", "dairy-free", "keto"];
-
         // Render diet buttons
         function renderDiets() {
             document.getElementById("diet").innerHTML = diets.map(d => `
                 <button onclick="toggleDiet('${d}')" 
-                        class="px-5 py-2 m-1 bg-zinc-800 hover:bg-zinc-700 rounded-2xl transition">
+                        class="px-6 py-3 bg-zinc-800 hover:bg-zinc-700 rounded-3xl transition ${selectedDiets.includes(d) ? 'bg-emerald-500 text-black' : ''}">
                     ${d}
                 </button>
             `).join('');
         }
-        // Toggle diet selection
+        // Toggle diet
         function toggleDiet(d) {
             if (selectedDiets.includes(d)) {
                 selectedDiets = selectedDiets.filter(item => item !== d);
@@ -52,43 +57,71 @@ class="flex-1 p-4 bg-zinc-800 text-white rounded-2xl focus:outline-none focus:bo
                 selectedDiets.push(d);
             }
             renderDiets();
-            alert("Selected diets: " + selectedDiets.join(", "));
         }
-         // Add new ingredient
+        // Add ingredient
         function addIngredient() {
-             const input = document.getElementById("input");
-             const val = input.value.trim().toLowerCase();
-                     if (!val) return;
+            const val = document.getElementById("input").value.trim().toLowerCase();
+            if (!val) return;
             if (ingredients.includes(val)) {
-                alert("Already added!");
+                alert("This ingredient is already added!");
                 return;
             }
- ingredients.push(val);
-            input.value = "";
+            ingredients.push(val);
+            document.getElementById("input").value = "";
             renderIngredients();
         }
-  // Render the list of ingredients
+        // Render ingredients list
         function renderIngredients() {
-            const container = document.getElementById("list");
-            container.innerHTML = ingredients.map((item, index) => `
-                <div class="bg-zinc-800 px-5 py-3 rounded-2xl inline-flex items-center gap-3">
+            const html = ingredients.map((item, i) => `
+                <div class="bg-zinc-800 px-5 py-3 rounded-3xl inline-flex items-center gap-3">
                     ${item}
-                    <button onclick="removeIngredient(${index})" 
-                            class="text-red-400 hover:text-red-500"> ✕
-                    </button>
+                    <button onclick="removeIngredient(${i})" 
+                            class="text-red-400 hover:text-red-500 ml-2">✕</button>
                 </div>
             `).join('');
+            document.getElementById("list").innerHTML = html;
         }
-// Remove ingredient
-        function removeIngredient(index) {
-            ingredients.splice(index, 1);
+        // Remove ingredient
+        function removeIngredient(i) {
+            ingredients.splice(i, 1);
             renderIngredients();
         }
-        // Camera placeholder
+
+        // Camera (placeholder for now)
         function openCamera() {
-            alert("📷 Camera feature coming soon!\n\nFor now, add ingredients manually.");
+            alert("📷 Camera scanner is coming soon!\n\nFor now, type ingredients manually.");
+            // We can replace this with full camera modal later
         }
-        // Initialize the app
+        // Find Recipes (placeholder - we'll improve this next)
+        function findRecipes() {
+            if (ingredients.length === 0) {
+                alert("Please add some ingredients to your fridge first!");
+                return;
+            }
+            const resultsDiv = document.getElementById("results");
+            resultsDiv.innerHTML = `
+                <div class="col-span-2 text-center py-12 text-emerald-400">
+                    <p class="text-xl">Finding recipes for your fridge...</p>
+                    <p class="text-sm mt-4 text-zinc-400">Current ingredients: ${ingredients.join(", ")}</p>
+                </div>
+            `;
+            // Temporary demo results
+            setTimeout(() => {
+                resultsDiv.innerHTML = `
+                    <div class="bg-zinc-900 rounded-3xl p-6">
+                        <h3 class="text-2xl font-semibold mb-2">🥘 Garlic Chicken Stir Fry</h3>
+                        <p class="text-emerald-400">85% match with your fridge</p>
+                        <p class="text-red-400 mt-2">Missing: soy sauce, garlic</p>
+                    </div>
+                    <div class="bg-zinc-900 rounded-3xl p-6">
+                        <h3 class="text-2xl font-semibold mb-2">🥗 Veggie Omelette</h3>
+                        <p class="text-emerald-400">95% match</p>
+                        <p class="text-emerald-400 mt-2">✅ You have everything!</p>
+                    </div>
+                `;
+            }, 800);
+        }
+        // Initialize app
         renderDiets();
         renderIngredients();
     </script>
