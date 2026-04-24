@@ -1,42 +1,35 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FridgeVibe</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+ <title>FridgeVibe</title>
+<script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-black text-white p-6">
-
-    <h1 class="text-3xl mb-4">🥶 FridgeVibe</h1>
-
-    <!-- Diet Filters -->
-    <div id="diet"></div>
-
+<h1 class="text-3xl mb-4">🥶 FridgeVibe</h1>
+ <!-- Diet Filters -->
+<div id="diet"></div>
     <!-- Ingredient Input -->
-    <div class="mt-6 flex gap-3">
-        <input id="input" 
-               class="flex-1 p-4 bg-zinc-800 text-white rounded-2xl focus:outline-none focus:border-emerald-500" 
-               placeholder="Add ingredient (e.g. chicken, rice)">
+<div class="mt-6 flex gap-3">
+<input id="input" 
+class="flex-1 p-4 bg-zinc-800 text-white rounded-2xl focus:outline-none focus:border-emerald-500" 
+    placeholder="Add ingredient (e.g. chicken, rice)">
         
         <button onclick="addIngredient()" 
                 class="bg-green-500 hover:bg-green-600 px-8 py-4 rounded-2xl font-medium">
             Add
         </button>
-        
-        <button onclick="openCamera()" 
+            <button onclick="openCamera()" 
                 class="bg-blue-500 hover:bg-blue-600 px-8 py-4 rounded-2xl font-medium">
             📷 Camera
         </button>
     </div>
-
-    <!-- Ingredients List -->
+<!-- Ingredients List -->
     <div id="list" class="mt-8 flex flex-wrap gap-3"></div>
-
-    <!-- Results -->
+<!-- Results -->
     <div id="results" class="mt-10"></div>
-
-    <script>
+<script>
         let ingredients = [];
         let selectedDiets = [];
 
@@ -51,7 +44,6 @@
                 </button>
             `).join('');
         }
-
         // Toggle diet selection
         function toggleDiet(d) {
             if (selectedDiets.includes(d)) {
@@ -62,52 +54,43 @@
             renderDiets();
             alert("Selected diets: " + selectedDiets.join(", "));
         }
-
-        // Add new ingredient
+         // Add new ingredient
         function addIngredient() {
-            const input = document.getElementById("input");
-            const val = input.value.trim().toLowerCase();
-            
-            if (!val) return;
+             const input = document.getElementById("input");
+             const val = input.value.trim().toLowerCase();
+                     if (!val) return;
             if (ingredients.includes(val)) {
                 alert("Already added!");
                 return;
             }
-
-            ingredients.push(val);
+ ingredients.push(val);
             input.value = "";
             renderIngredients();
         }
-
-        // Render the list of ingredients
+  // Render the list of ingredients
         function renderIngredients() {
             const container = document.getElementById("list");
             container.innerHTML = ingredients.map((item, index) => `
                 <div class="bg-zinc-800 px-5 py-3 rounded-2xl inline-flex items-center gap-3">
                     ${item}
                     <button onclick="removeIngredient(${index})" 
-                            class="text-red-400 hover:text-red-500">
-                        ✕
+                            class="text-red-400 hover:text-red-500"> ✕
                     </button>
                 </div>
             `).join('');
         }
-
-        // Remove ingredient
+// Remove ingredient
         function removeIngredient(index) {
             ingredients.splice(index, 1);
             renderIngredients();
         }
-
         // Camera placeholder
         function openCamera() {
             alert("📷 Camera feature coming soon!\n\nFor now, add ingredients manually.");
         }
-
         // Initialize the app
         renderDiets();
         renderIngredients();
     </script>
-
 </body>
 </html>
