@@ -6,47 +6,51 @@
     <title>FridgeVibe • Spoonacular</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-    <style>
-        body { font-family: system-ui, sans-serif; }
-        .recipe-card { transition: all 0.3s; }
-        .recipe-card:hover { transform: translateY(-8px); }
-        .missing-pill { background: #450a0a; color: #f87171; }
-    </style>
 </head>
 <body class="bg-zinc-950 text-white p-6 max-w-5xl mx-auto">
+
     <h1 class="text-4xl font-bold mb-6">🥶 FridgeVibe</h1>
-    <!-- API Key Input -->
-    <div class="mb-8 bg-zinc-900 p-5 rounded-3xl">
-        <p class="text-sm text-zinc-400 mb-2">bb101a3e101048aa9c3f077710303f07</p>
+
+    <!-- API Key Section -->
+    <div class="mb-8 bg-zinc-900 p-6 rounded-3xl border border-zinc-700">
+        <p class="text-sm text-zinc-400 mb-3">Spoonacular API Key</p>
         <div class="flex gap-3">
-            <input id="apiKey" type="password" placeholder="Paste your Spoonacular API key here" 
+            <input id="apiKeyInput" type="password" placeholder="bb101a3e101048aa9c3f077710303f07" 
                    class="flex-1 bg-zinc-800 border border-zinc-700 rounded-2xl px-5 py-3 focus:outline-none focus:border-emerald-500">
             <button onclick="saveApiKey()" class="bg-emerald-500 hover:bg-emerald-600 px-8 rounded-2xl font-medium">Save Key</button>
+            <button onclick="toggleKeyVisibility()" class="bg-zinc-700 hover:bg-zinc-600 px-6 rounded-2xl">👁</button>
         </div>
+        <p id="keyStatus" class="text-xs mt-3 text-emerald-400"></p>
     </div>
+
     <!-- Diet Filters -->
     <div class="mb-6">
         <p class="text-zinc-400 mb-2">Diet Filters</p>
         <div id="diet" class="flex flex-wrap gap-2"></div>
     </div>
+
     <!-- Ingredient Input -->
     <div class="flex gap-3 mb-8">
         <input id="input" class="flex-1 bg-zinc-900 border border-zinc-700 rounded-2xl px-6 py-4 text-lg focus:outline-none focus:border-emerald-500"
                placeholder="chicken, marinara sauce, cheese, bread...">
         <button onclick="addIngredient()" class="bg-emerald-500 hover:bg-emerald-600 px-8 rounded-2xl font-medium">Add</button>
-        <button onclick="openCamera()" class="bg-blue-600 hover:bg-blue-700 px-8 rounded-2xl font-medium flex items-center gap-2">📷 Camera</button>
+        <button onclick="openCamera()" class="bg-blue-600 hover:bg-blue-700 px-8 rounded-2xl font-medium">📷 Camera</button>
     </div>
+
     <div id="list" class="flex flex-wrap gap-3 mb-10"></div>
+
     <button onclick="findRecipes()" class="w-full bg-white text-black py-5 rounded-3xl text-xl font-semibold hover:bg-emerald-400 transition">
         🔍 Find Real Matching Recipes
     </button>
+
     <div id="results" class="grid grid-cols-1 md:grid-cols-2 gap-8 mt-10"></div>
-    <!-- Camera Modal -->
+
+    <!-- Camera Modal (basic version) -->
     <div id="camera-modal" class="hidden fixed inset-0 bg-black/95 z-50 flex items-center justify-center p-4">
         <div class="bg-zinc-900 rounded-3xl max-w-lg w-full overflow-hidden">
             <div class="p-5 border-b flex justify-between">
                 <h3 class="text-xl font-semibold">📸 Scan Your Fridge</h3>
-                <button onclick="closeCameraModal()" class="text-3xl text-zinc-400">×</button>
+                <button onclick="closeCameraModal()" class="text-3xl">×</button>
             </div>
             <div class="p-5">
                 <video id="video" autoplay playsinline class="w-full rounded-2xl bg-black aspect-video"></video>
@@ -65,40 +69,41 @@
             </div>
         </div>
     </div>
+
     <script>
         let ingredients = [];
         let selectedDiets = [];
         let apiKey = localStorage.getItem("spoonacularKey") || "";
         let videoStream = null;
+
         const dietOptions = ["vegan", "vegetarian", "gluten-free", "dairy-free", "keto"];
-        // Ingredient aliases to improve matching
-        const aliases = {
-            "marinara sauce": ["tomato sauce", "tomato", "pasta sauce"],
-            "buffalo sauce": ["hot sauce"],
-            "cheese": ["mozzarella", "cheddar", "parmesan", "provolone"],
-            "bread": ["breadcrumbs", "bread crumbs"],
-            "chicken": ["chicken breast", "chicken thigh"]
-        };
+
         function renderDiets() {
             document.getElementById("diet").innerHTML = dietOptions.map(d => `
-                <button onclick="toggleDiet('${d}')" 
-                        class="px-6 py-3 bg-zinc-800 hover:bg-zinc-700 rounded-3xl transition ${selectedDiets.includes(d) ? 'bg-emerald-500 text-black' : ''}">
-                    ${d}
-                </button>
+                <button onclick="toggleDiet('${d}')" class="px-6 py-3 bg-zinc-800 hover:bg-zinc-700 rounded-3xl transition ${selectedDiets.includes(d) ? 'bg-emerald-500 text-black' : ''}">${d}</button>
             `).join('');
         }
+
         function toggleDiet(d) {
             if (selectedDiets.includes(d)) selectedDiets = selectedDiets.filter(x => x !== d);
             else selectedDiets.push(d);
             renderDiets();
         }
+
         function saveApiKey() {
-            apiKey = document.getElementById("apiKey").value.trim();
+            apiKey = document.getElementById("apiKeyInput").value.trim();
             if (apiKey) {
                 localStorage.setItem("spoonacularKey", apiKey);
-                alert("API Key saved successfully! ✅");
+                document.getElementById("keyStatus").textContent = "✅ Key saved!";
+                setTimeout(() => document.getElementById("keyStatus").textContent = "", 3000);
             }
         }
+
+        function toggleKeyVisibility() {
+            const input = document.getElementById("apiKeyInput");
+            input.type = input.type === "password" ? "text" : "password";
+        }
+
         function addIngredient() {
             let val = document.getElementById("input").value.trim().toLowerCase();
             if (!val || ingredients.includes(val)) return;
@@ -106,103 +111,67 @@
             document.getElementById("input").value = "";
             renderIngredients();
         }
+
         function renderIngredients() {
             document.getElementById("list").innerHTML = ingredients.map((item, i) => `
                 <div class="bg-zinc-800 px-5 py-3 rounded-3xl inline-flex items-center gap-3">
-                    ${item}
-                    <button onclick="removeIngredient(${i})" class="text-red-400 hover:text-red-500">✕</button>
+                    ${item} <button onclick="removeIngredient(${i})" class="text-red-400">✕</button>
                 </div>
             `).join('');
         }
+
         function removeIngredient(i) {
             ingredients.splice(i, 1);
             renderIngredients();
         }
-        // Camera functions (kept functional)
+
         function openCamera() {
-            document.getElementById("camera-modal").classList.remove("hidden");
-            document.getElementById("photo-review").classList.add("hidden");
-            startCamera();
+            alert("Camera feature coming soon. Add ingredients manually for now.");
         }
-        function closeCameraModal() {
-            document.getElementById("camera-modal").classList.add("hidden");
-            if (videoStream) videoStream.getTracks().forEach(t => t.stop());
-        }
-        async function startCamera() {
-            const video = document.getElementById("video");
-            try {
-                videoStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
-                video.srcObject = videoStream;
-            } catch (e) {
-                alert("Camera access failed.");
-                closeCameraModal();
-            }
-        }
-        function takePhoto() {
-            const video = document.getElementById("video");
-            const canvas = document.createElement("canvas");
-            canvas.width = video.videoWidth || 1280;
-            canvas.height = video.videoHeight || 720;
-            canvas.getContext("2d").drawImage(video, 0, 0);
-            document.getElementById("captured-photo").src = canvas.toDataURL("image/jpeg", 0.85);
-            document.getElementById("photo-review").classList.remove("hidden");
-        }
-        function retakePhoto() {
-            document.getElementById("photo-review").classList.add("hidden");
-            startCamera();
-        }
-        function addScannedIngredients() {
-            const lines = document.getElementById("extracted-items").value.trim().split("\n").filter(l => l.trim());
-            lines.forEach(line => {
-                const item = line.trim().toLowerCase();
-                if (item && !ingredients.includes(item)) ingredients.push(item);
-            });
-            renderIngredients();
-            closeCameraModal();
-        }
-        // Main Search using Spoonacular
+
         async function findRecipes() {
             if (!apiKey) {
-                alert("Please enter your Spoonacular API key first!");
+                alert("Please enter and save your Spoonacular API key first!");
                 return;
             }
             if (ingredients.length === 0) {
-                alert("Add some ingredients!");
+                alert("Add some ingredients first!");
                 return;
             }
+
             const resultsDiv = document.getElementById("results");
-            resultsDiv.innerHTML = `<div class="col-span-2 text-center py-16"><i class="fas fa-spinner fa-spin text-5xl text-emerald-400"></i><p>Searching Spoonacular...</p></div>`;
+            resultsDiv.innerHTML = `<div class="col-span-2 text-center py-16"><i class="fas fa-spinner fa-spin text-5xl text-emerald-400"></i><p>Searching for Chicken Parm style recipes...</p></div>`;
+
             const ingredientsString = ingredients.join(",");
+
             try {
-                const url = `https://api.spoonacular.com/recipes/findByIngredients?ingredients=${encodeURIComponent(ingredientsString)}&number=15&ranking=1&ignorePantry=true&apiKey=${apiKey}`;
+                const url = `https://api.spoonacular.com/recipes/findByIngredients?ingredients=${encodeURIComponent(ingredientsString)}&number=30&ranking=2&ignorePantry=true&apiKey=${apiKey}`;
                 
                 const res = await fetch(url);
                 const recipes = await res.json();
 
                 if (!recipes || recipes.length === 0) {
-                    resultsDiv.innerHTML = `<div class="col-span-2 text-center py-16 text-zinc-400">No recipes found. Try different ingredients.</div>`;
+                    resultsDiv.innerHTML = `<div class="col-span-2 text-center py-16 text-zinc-400">No recipes found.<br>Try adding "pasta", "tomato sauce", or "mozzarella".</div>`;
                     return;
                 }
+
                 let html = '';
                 for (let r of recipes) {
+                    const usedCount = r.usedIngredientCount;
+                    const missedCount = r.missedIngredientCount;
+                    const percent = Math.round((usedCount / (usedCount + missedCount)) * 100);
+
                     html += `
                         <div class="recipe-card bg-zinc-900 rounded-3xl overflow-hidden border border-zinc-800">
                             <img src="${r.image}" class="w-full h-56 object-cover">
                             <div class="p-6">
-                                <h3 class="font-semibold text-xl mb-3">${r.title}</h3>
-                                <p class="text-emerald-400">${r.usedIngredientCount} / ${r.usedIngredientCount + r.missedIngredientCount} ingredients</p>
-                                <div class="mt-4">
-                                    <p class="text-xs text-zinc-500">You have:</p>
-                                    <p class="text-emerald-300 text-sm">${r.usedIngredients.map(i => i.name).slice(0,5).join(", ")}</p>
+                                <h3 class="font-semibold text-xl mb-2">${r.title}</h3>
+                                <p class="text-emerald-400">${percent}% match • ${usedCount} ingredients used</p>
+                                <div class="mt-4 text-sm">
+                                    <span class="text-emerald-300">Have: ${r.usedIngredients.map(i => i.name).slice(0,5).join(", ")}</span><br>
+                                    ${missedCount > 0 ? `<span class="text-red-400">Missing: ${r.missedIngredients.map(i => i.name).slice(0,5).join(", ")}</span>` : `<span class="text-emerald-400">✅ You have everything!</span>`}
                                 </div>
-                                ${r.missedIngredients.length ? `
-                                <div class="mt-3">
-                                    <p class="text-xs text-zinc-500">Missing:</p>
-                                    <div class="flex flex-wrap gap-2">
-                                        ${r.missedIngredients.slice(0,6).map(i => `<span class="missing-pill text-xs px-3 py-1 rounded-2xl">${i.name}</span>`).join('')}
-                                    </div>
-                                </div>` : `<div class="text-emerald-400 mt-3">✅ You have everything!</div>`}
-                                <a href="https://spoonacular.com/recipes/${r.title.toLowerCase().replace(/\s+/g, '-')}-${r.id}" target="_blank"
+                                <a href="https://spoonacular.com/recipes/${r.title.toLowerCase().replace(/ /g, '-')}-${r.id}" target="_blank" 
                                    class="block mt-6 text-center bg-zinc-800 hover:bg-zinc-700 py-4 rounded-2xl font-medium">
                                     View Full Recipe →
                                 </a>
@@ -211,15 +180,17 @@
                     `;
                 }
                 resultsDiv.innerHTML = html;
+
             } catch (err) {
-                resultsDiv.innerHTML = `<div class="col-span-2 text-center py-16 text-red-400">Error: ${err.message}<br>Check your API key and internet connection.</div>`;
+                resultsDiv.innerHTML = `<div class="col-span-2 text-red-400 text-center py-16">Error: ${err.message}<br>Check your API key.</div>`;
             }
         }
+
         // Initialize
         renderDiets();
         renderIngredients();
-        // Load saved API key
-        if (apiKey) document.getElementById("apiKey").value = apiKey;
+
+        if (apiKey) document.getElementById("apiKeyInput").value = apiKey;
     </script>
 </body>
 </html>
