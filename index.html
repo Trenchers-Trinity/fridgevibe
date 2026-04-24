@@ -15,7 +15,7 @@
 
     <!-- Diet Filters -->
     <div class="mb-6">
-        <p class="text-zinc-400 mb-2">Diet Filters</p>
+        <p class="text-zinc-400 mb-2">Diet Filters (hard filtered)</p>
         <div id="diet" class="flex flex-wrap gap-2"></div>
     </div>
 
@@ -65,7 +65,7 @@
         let selectedDiets = [];
         
         // === YOUR HARDCODED SPOONACULAR API KEY ===
-        const apiKey = "bb101a3e101048aa9c3f077710303f07";   // ← Replace this with your actual key
+        const apiKey = "bb101a3e101048aa9c3f077710303f07";   // ← Replace with your real key
 
         let videoStream = null;
 
@@ -73,7 +73,10 @@
 
         function renderDiets() {
             document.getElementById("diet").innerHTML = dietOptions.map(d => `
-                <button onclick="toggleDiet('${d}')" class="px-6 py-3 bg-zinc-800 hover:bg-zinc-700 rounded-3xl transition ${selectedDiets.includes(d) ? 'bg-emerald-500 text-black' : ''}">${d}</button>
+                <button onclick="toggleDiet('${d}')" 
+                        class="px-6 py-3 bg-zinc-800 hover:bg-zinc-700 rounded-3xl transition ${selectedDiets.includes(d) ? 'bg-emerald-500 text-black font-medium' : ''}">
+                    ${d}
+                </button>
             `).join('');
         }
 
@@ -94,7 +97,7 @@
         function renderIngredients() {
             document.getElementById("list").innerHTML = ingredients.map((item, i) => `
                 <div class="bg-zinc-800 px-5 py-3 rounded-3xl inline-flex items-center gap-3">
-                    ${item} <button onclick="removeIngredient(${i})" class="text-red-400">✕</button>
+                    ${item} <button onclick="removeIngredient(${i})" class="text-red-400 hover:text-red-500">✕</button>
                 </div>
             `).join('');
         }
@@ -105,7 +108,7 @@
         }
 
         // Camera functions (unchanged)
-        function openCamera() {
+        function openCamera() { /* ... same as before ... */ 
             document.getElementById("camera-modal").classList.remove("hidden");
             document.getElementById("photo-review").classList.add("hidden");
             startCamera();
@@ -154,7 +157,7 @@
 
         async function findRecipes() {
             if (!apiKey || apiKey === "YOUR_API_KEY_HERE") {
-                alert("Please replace 'YOUR_API_KEY_HERE' with your actual Spoonacular API key in the code.");
+                alert("Please replace 'YOUR_API_KEY_HERE' with your actual Spoonacular API key.");
                 return;
             }
             if (ingredients.length === 0) {
@@ -163,35 +166,73 @@
             }
 
             const resultsDiv = document.getElementById("results");
-            resultsDiv.innerHTML = `<div class="col-span-2 text-center py-16"><i class="fas fa-spinner fa-spin text-5xl text-emerald-400"></i><p>Searching Spoonacular...</p></div>`;
+            resultsDiv.innerHTML = `<div class="col-span-2 text-center py-16"><i class="fas fa-spinner fa-spin text-5xl text-emerald-400"></i><p>Searching for best matches...</p></div>`;
 
             const ingredientsString = ingredients.join(",");
 
             try {
-                const url = `https://api.spoonacular.com/recipes/findByIngredients?ingredients=${encodeURIComponent(ingredientsString)}&number=30&ranking=2&ignorePantry=true&apiKey=${apiKey}`;
-                
+                let url = `https://api.spoonacular.com/recipes/findByIngredients?ingredients=${encodeURIComponent(ingredientsString)}&number=30&ranking=2&ignorePantry=true&apiKey=${apiKey}`;
+
+                // Add hard diet filters
+                if (selectedDiets.length > 0) {
+                    url += `&diet=${selectedDiets.join(',')}`;
+                }
+
                 const res = await fetch(url);
-                const recipes = await res.json();
+                let recipes = await res.json();
 
                 if (!recipes || recipes.length === 0) {
-                    resultsDiv.innerHTML = `<div class="col-span-2 text-center py-16 text-zinc-400">No recipes found. Try different ingredients.</div>`;
+                    resultsDiv.innerHTML = `<div class="col-span-2 text-center py-16 text-zinc-400">No recipes found matching your ingredients and diets.</div>`;
                     return;
                 }
 
+                // Sort by match quality (used ingredients descending)
+                recipes.sort((a, b) => b.usedIngredientCount - a.usedIngredientCount);
+
                 let html = '';
                 for (let r of recipes) {
+                    const totalIngredients = r.usedIngredientCount + r.missedIngredientCount;
+                    const matchPercent = totalIngredients > 0 ? Math.round((r.usedIngredientCount / totalIngredients) * 100) : 0;
+
+                    const haveList = r.usedIngredients.map(i => `<span class="inline-flex items-center gap-1"><i class="fas fa-check text-emerald-400"></i>${i.name}</span>`).slice(0, 6).join(" • ");
+                    const missList = r.missedIngredients.map(i => `<span class="inline-flex items-center gap-1"><i class="fas fa-times text-red-400"></i>${i.name}</span>`).slice(0, 6).join(" • ");
+
                     html += `
                         <div class="recipe-card bg-zinc-900 rounded-3xl overflow-hidden border border-zinc-800">
                             <img src="${r.image}" class="w-full h-56 object-cover">
                             <div class="p-6">
-                                <h3 class="font-semibold text-xl mb-2">${r.title}</h3>
-                                <p class="text-emerald-400">${r.usedIngredientCount} ingredients matched</p>
-                                <div class="mt-4 text-sm">
-                                    Have: ${r.usedIngredients.map(i => i.name).slice(0,5).join(", ")}<br>
-                                    ${r.missedIngredients.length ? `Missing: ${r.missedIngredients.map(i => i.name).slice(0,5).join(", ")}` : "✅ You have everything!"}
+                                <h3 class="font-semibold text-xl mb-3">${r.title}</h3>
+                                
+                                <!-- Match Score -->
+                                <div class="flex items-center gap-3 mb-4">
+                                    <div class="flex-1 bg-zinc-800 h-2.5 rounded-full overflow-hidden">
+                                        <div class="h-full bg-gradient-to-r from-emerald-400 to-emerald-500" 
+                                             style="width: ${matchPercent}%"></div>
+                                    </div>
+                                    <span class="text-emerald-400 font-medium">${matchPercent}% match</span>
                                 </div>
-                                <a href="https://spoonacular.com/recipes/${r.title.toLowerCase().replace(/ /g, '-')}-${r.id}" target="_blank" 
-                                   class="block mt-6 text-center bg-zinc-800 hover:bg-zinc-700 py-4 rounded-2xl font-medium">
+
+                                <!-- Used Ingredients -->
+                                <div class="mb-4">
+                                    <div class="flex justify-between text-sm mb-1">
+                                        <span class="text-emerald-400 font-medium">Have (${r.usedIngredientCount})</span>
+                                    </div>
+                                    <div class="text-sm text-zinc-300 leading-relaxed">${haveList || '—'}</div>
+                                </div>
+
+                                <!-- Missing Ingredients -->
+                                ${r.missedIngredientCount > 0 ? `
+                                <div>
+                                    <div class="flex justify-between text-sm mb-1">
+                                        <span class="text-red-400 font-medium">Missing (${r.missedIngredientCount})</span>
+                                    </div>
+                                    <div class="text-sm text-zinc-400 leading-relaxed">${missList}</div>
+                                </div>` : `
+                                <div class="text-emerald-400 text-sm font-medium mt-2">✅ You have everything needed!</div>`}
+
+                                <a href="https://spoonacular.com/recipes/${r.title.toLowerCase().replace(/ /g, '-')}-${r.id}" 
+                                   target="_blank" 
+                                   class="block mt-6 text-center bg-zinc-800 hover:bg-emerald-600 hover:text-white py-4 rounded-2xl font-medium transition">
                                     View Full Recipe →
                                 </a>
                             </div>
@@ -201,7 +242,7 @@
                 resultsDiv.innerHTML = html;
 
             } catch (err) {
-                resultsDiv.innerHTML = `<div class="col-span-2 text-red-400 text-center py-16">Error loading recipes.<br>Please check your API key and internet connection.</div>`;
+                resultsDiv.innerHTML = `<div class="col-span-2 text-red-400 text-center py-16">Error loading recipes.<br>Check your API key and connection.</div>`;
             }
         }
 
