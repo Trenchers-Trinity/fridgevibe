@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FridgeVibe • Weighted Matching</title>
+    <title>FridgeVibe • Spoonacular</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <style>
@@ -14,35 +14,37 @@
     </style>
 </head>
 <body class="bg-zinc-950 text-white p-6 max-w-5xl mx-auto">
-    <h1 class="text-4xl font-bold mb-8 flex items-center gap-3">
-        🥶 FridgeVibe
-    </h1>
+    <h1 class="text-4xl font-bold mb-6">🥶 FridgeVibe</h1>
+    <!-- API Key Input -->
+    <div class="mb-8 bg-zinc-900 p-5 rounded-3xl">
+        <p class="text-sm text-zinc-400 mb-2">bb101a3e101048aa9c3f077710303f07</p>
+        <div class="flex gap-3">
+            <input id="apiKey" type="password" placeholder="Paste your Spoonacular API key here" 
+                   class="flex-1 bg-zinc-800 border border-zinc-700 rounded-2xl px-5 py-3 focus:outline-none focus:border-emerald-500">
+            <button onclick="saveApiKey()" class="bg-emerald-500 hover:bg-emerald-600 px-8 rounded-2xl font-medium">Save Key</button>
+        </div>
+    </div>
     <!-- Diet Filters -->
     <div class="mb-6">
         <p class="text-zinc-400 mb-2">Diet Filters</p>
         <div id="diet" class="flex flex-wrap gap-2"></div>
     </div>
-    <!-- Input -->
+    <!-- Ingredient Input -->
     <div class="flex gap-3 mb-8">
-        <input id="input" 
-               class="flex-1 bg-zinc-900 border border-zinc-700 rounded-2xl px-6 py-4 text-lg focus:outline-none focus:border-emerald-500" 
-               placeholder="Add ingredients (chicken, marinara sauce, cheese, bread)">
+        <input id="input" class="flex-1 bg-zinc-900 border border-zinc-700 rounded-2xl px-6 py-4 text-lg focus:outline-none focus:border-emerald-500"
+               placeholder="chicken, marinara sauce, cheese, bread...">
         <button onclick="addIngredient()" class="bg-emerald-500 hover:bg-emerald-600 px-8 rounded-2xl font-medium">Add</button>
         <button onclick="openCamera()" class="bg-blue-600 hover:bg-blue-700 px-8 rounded-2xl font-medium flex items-center gap-2">📷 Camera</button>
     </div>
-    <!-- Ingredients List -->
     <div id="list" class="flex flex-wrap gap-3 mb-10"></div>
-    <!-- Search Button -->
-    <button onclick="findRecipes()" 
-            class="w-full bg-white text-black font-semibold py-5 rounded-3xl text-xl mb-10 hover:bg-emerald-400 transition">
+    <button onclick="findRecipes()" class="w-full bg-white text-black py-5 rounded-3xl text-xl font-semibold hover:bg-emerald-400 transition">
         🔍 Find Real Matching Recipes
     </button>
-    <!-- Results -->
-    <div id="results" class="grid grid-cols-1 md:grid-cols-2 gap-8"></div>
+    <div id="results" class="grid grid-cols-1 md:grid-cols-2 gap-8 mt-10"></div>
     <!-- Camera Modal -->
     <div id="camera-modal" class="hidden fixed inset-0 bg-black/95 z-50 flex items-center justify-center p-4">
         <div class="bg-zinc-900 rounded-3xl max-w-lg w-full overflow-hidden">
-            <div class="p-5 border-b border-zinc-700 flex justify-between">
+            <div class="p-5 border-b flex justify-between">
                 <h3 class="text-xl font-semibold">📸 Scan Your Fridge</h3>
                 <button onclick="closeCameraModal()" class="text-3xl text-zinc-400">×</button>
             </div>
@@ -53,10 +55,9 @@
                 <button onclick="takePhoto()" class="flex-1 bg-emerald-500 py-4 rounded-2xl font-medium">Take Photo</button>
                 <button onclick="closeCameraModal()" class="flex-1 bg-zinc-700 py-4 rounded-2xl font-medium">Cancel</button>
             </div>
-            <div id="photo-review" class="hidden p-5 border-t border-zinc-700">
+            <div id="photo-review" class="hidden p-5 border-t">
                 <img id="captured-photo" class="w-full rounded-2xl mb-4">
-                <p class="text-sm text-zinc-400 mb-2">List ingredients you see (one per line):</p>
-                <textarea id="extracted-items" rows="6" class="w-full bg-zinc-800 rounded-2xl p-4"></textarea>
+                <textarea id="extracted-items" rows="6" class="w-full bg-zinc-800 rounded-2xl p-4" placeholder="Type ingredients one per line..."></textarea>
                 <div class="flex gap-3 mt-5">
                     <button onclick="addScannedIngredients()" class="flex-1 bg-emerald-500 py-4 rounded-2xl font-medium">Add to Fridge</button>
                     <button onclick="retakePhoto()" class="flex-1 bg-zinc-700 py-4 rounded-2xl font-medium">Retake</button>
@@ -67,9 +68,17 @@
     <script>
         let ingredients = [];
         let selectedDiets = [];
+        let apiKey = localStorage.getItem("spoonacularKey") || "";
         let videoStream = null;
         const dietOptions = ["vegan", "vegetarian", "gluten-free", "dairy-free", "keto"];
-
+        // Ingredient aliases to improve matching
+        const aliases = {
+            "marinara sauce": ["tomato sauce", "tomato", "pasta sauce"],
+            "buffalo sauce": ["hot sauce"],
+            "cheese": ["mozzarella", "cheddar", "parmesan", "provolone"],
+            "bread": ["breadcrumbs", "bread crumbs"],
+            "chicken": ["chicken breast", "chicken thigh"]
+        };
         function renderDiets() {
             document.getElementById("diet").innerHTML = dietOptions.map(d => `
                 <button onclick="toggleDiet('${d}')" 
@@ -78,14 +87,20 @@
                 </button>
             `).join('');
         }
-
         function toggleDiet(d) {
             if (selectedDiets.includes(d)) selectedDiets = selectedDiets.filter(x => x !== d);
             else selectedDiets.push(d);
             renderDiets();
         }
+        function saveApiKey() {
+            apiKey = document.getElementById("apiKey").value.trim();
+            if (apiKey) {
+                localStorage.setItem("spoonacularKey", apiKey);
+                alert("API Key saved successfully! ✅");
+            }
+        }
         function addIngredient() {
-            const val = document.getElementById("input").value.trim().toLowerCase();
+            let val = document.getElementById("input").value.trim().toLowerCase();
             if (!val || ingredients.includes(val)) return;
             ingredients.push(val);
             document.getElementById("input").value = "";
@@ -103,7 +118,7 @@
             ingredients.splice(i, 1);
             renderIngredients();
         }
-        // Camera Functions
+        // Camera functions (kept functional)
         function openCamera() {
             document.getElementById("camera-modal").classList.remove("hidden");
             document.getElementById("photo-review").classList.add("hidden");
@@ -119,7 +134,7 @@
                 videoStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
                 video.srcObject = videoStream;
             } catch (e) {
-                alert("Camera access denied or unavailable.");
+                alert("Camera access failed.");
                 closeCameraModal();
             }
         }
@@ -145,129 +160,66 @@
             renderIngredients();
             closeCameraModal();
         }
-        // ==================== WEIGHTED MATCHING ENGINE ====================
+        // Main Search using Spoonacular
         async function findRecipes() {
+            if (!apiKey) {
+                alert("Please enter your Spoonacular API key first!");
+                return;
+            }
             if (ingredients.length === 0) {
-                alert("Please add some ingredients first!");
+                alert("Add some ingredients!");
                 return;
             }
             const resultsDiv = document.getElementById("results");
-            resultsDiv.innerHTML = `<div class="col-span-2 text-center py-16"><i class="fas fa-spinner fa-spin text-5xl text-emerald-400"></i><p class="mt-6">Searching with weighted scoring...</p></div>`;
-            let allMeals = [];
-            for (let ing of ingredients) {
-                try {
-                    const res = await fetch(`https://www.themealdb.com/api/json/v1/1/filter.php?i=${encodeURIComponent(ing)}`);
-                    const data = await res.json();
-                    if (data.meals) allMeals = allMeals.concat(data.meals);
-                } catch (e) {}
-            }
-            const uniqueMeals = [...new Map(allMeals.map(m => [m.idMeal, m])).values()];
-            let finalRecipes = [];
-            for (let meal of uniqueMeals.slice(0, 60)) {
-                try {
-                    const res = await fetch(`https://www.themealdb.com/api/json/v1/1/lookup.php?i=${meal.idMeal}`);
-                    const data = await res.json();
-                    const r = data.meals?.[0];
-                    if (!r) continue;
-                    // Diet filter
-                    if (selectedDiets.length > 0 && !selectedDiets.every(d => matchesDiet(r, d))) continue;
-                    // Extract recipe ingredients
-                    let recipeIngredients = [];
-                    for (let i = 1; i <= 20; i++) {
-                        let ing = r[`strIngredient${i}`];
-                        if (ing) recipeIngredients.push(ing.toLowerCase().trim());
-                    }
-                    // Weighted Scoring System
-                    let strongMatches = 0;
-                    let weakMatches = 0;
-                    for (let userIng of ingredients) {
-                        let bestMatch = 0;
-                        for (let recipeIng of recipeIngredients) {
-                            if (recipeIng === userIng) {
-                                strongMatches += 3;   // Strong exact match = 3 points
-                                bestMatch = 3;
-                                break;
-                            }
-                            if (recipeIng.includes(userIng) || userIng.includes(recipeIng)) {
-                                weakMatches += 1;     // Partial / substring match = 1 point
-                                bestMatch = Math.max(bestMatch, 1);
-                            }
-                        }
-                    }
-                    const totalScore = strongMatches + weakMatches;
-                    // HARD FILTER - This is what you asked for
-                    if (totalScore < 4) continue;        // Must have decent match
-                    // Build have / missing lists
-                    let have = [], missing = [];
-                    recipeIngredients.forEach(rIng => {
-                        const isHave = ingredients.some(u => 
-                            rIng === u || rIng.includes(u) || u.includes(rIng)
-                        );
-                        if (isHave) have.push(rIng);
-                        else missing.push(rIng);
-                    });
-                    const matchPercent = Math.round((have.length / (have.length + missing.length || 1)) * 100);
-                    finalRecipes.push({
-                        ...r,
-                        have: [...new Set(have)],
-                        missing: [...new Set(missing)],
-                        score: matchPercent,
-                        totalScore: totalScore
-                    });
-                } catch (e) {}
-            }
-            // Sort by weighted score first, then by match percent
-            finalRecipes.sort((a, b) => b.totalScore - a.totalScore || b.score - a.score);
+            resultsDiv.innerHTML = `<div class="col-span-2 text-center py-16"><i class="fas fa-spinner fa-spin text-5xl text-emerald-400"></i><p>Searching Spoonacular...</p></div>`;
+            const ingredientsString = ingredients.join(",");
+            try {
+                const url = `https://api.spoonacular.com/recipes/findByIngredients?ingredients=${encodeURIComponent(ingredientsString)}&number=15&ranking=1&ignorePantry=true&apiKey=${apiKey}`;
+                
+                const res = await fetch(url);
+                const recipes = await res.json();
 
-            if (finalRecipes.length === 0) {
-                resultsDiv.innerHTML = `<div class="col-span-2 text-center py-16 text-zinc-400">No strong matches found.<br>Try adding more ingredients like pasta, onion, garlic, etc.</div>`;
-                return;
-            }
-            let html = '';
-            for (let r of finalRecipes.slice(0, 15)) {
-                html += `
-                    <div class="recipe-card bg-zinc-900 rounded-3xl overflow-hidden border border-zinc-800">
-                        <img src="${r.strMealThumb}" class="w-full h-56 object-cover">
-                        <div class="p-6">
-                            <div class="flex justify-between mb-4">
-                                <h3 class="font-semibold text-xl">${r.strMeal}</h3>
-                                <span class="text-emerald-400 font-medium">${r.score}% match</span>
-                            </div>
-                            <div class="mb-4">
-                                <p class="text-xs text-zinc-500">You have:</p>
-                                <p class="text-emerald-300">${r.have.length ? r.have.slice(0,5).join(", ") : "None"}</p>
-                            </div>
-                            ${r.missing.length > 0 ? `
-                            <div class="mb-6">
-                                <p class="text-xs text-zinc-500">Missing (${r.missing.length}):</p>
-                                <div class="flex flex-wrap gap-2">
-                                    ${r.missing.slice(0,6).map(m => `<span class="missing-pill text-xs px-3 py-1 rounded-2xl">${m}</span>`).join('')}
+                if (!recipes || recipes.length === 0) {
+                    resultsDiv.innerHTML = `<div class="col-span-2 text-center py-16 text-zinc-400">No recipes found. Try different ingredients.</div>`;
+                    return;
+                }
+                let html = '';
+                for (let r of recipes) {
+                    html += `
+                        <div class="recipe-card bg-zinc-900 rounded-3xl overflow-hidden border border-zinc-800">
+                            <img src="${r.image}" class="w-full h-56 object-cover">
+                            <div class="p-6">
+                                <h3 class="font-semibold text-xl mb-3">${r.title}</h3>
+                                <p class="text-emerald-400">${r.usedIngredientCount} / ${r.usedIngredientCount + r.missedIngredientCount} ingredients</p>
+                                <div class="mt-4">
+                                    <p class="text-xs text-zinc-500">You have:</p>
+                                    <p class="text-emerald-300 text-sm">${r.usedIngredients.map(i => i.name).slice(0,5).join(", ")}</p>
                                 </div>
-                            </div>` : `<div class="text-emerald-400 mb-6">✅ You have everything!</div>`}
-                            <a href="https://www.themealdb.com/meal/${r.idMeal}" target="_blank"
-                               class="block text-center bg-zinc-800 hover:bg-zinc-700 py-4 rounded-2xl font-medium">
-                                View Full Recipe →
-                            </a>
+                                ${r.missedIngredients.length ? `
+                                <div class="mt-3">
+                                    <p class="text-xs text-zinc-500">Missing:</p>
+                                    <div class="flex flex-wrap gap-2">
+                                        ${r.missedIngredients.slice(0,6).map(i => `<span class="missing-pill text-xs px-3 py-1 rounded-2xl">${i.name}</span>`).join('')}
+                                    </div>
+                                </div>` : `<div class="text-emerald-400 mt-3">✅ You have everything!</div>`}
+                                <a href="https://spoonacular.com/recipes/${r.title.toLowerCase().replace(/\s+/g, '-')}-${r.id}" target="_blank"
+                                   class="block mt-6 text-center bg-zinc-800 hover:bg-zinc-700 py-4 rounded-2xl font-medium">
+                                    View Full Recipe →
+                                </a>
+                            </div>
                         </div>
-                    </div>
-                `;
+                    `;
+                }
+                resultsDiv.innerHTML = html;
+            } catch (err) {
+                resultsDiv.innerHTML = `<div class="col-span-2 text-center py-16 text-red-400">Error: ${err.message}<br>Check your API key and internet connection.</div>`;
             }
-            resultsDiv.innerHTML = html;
-        }
-        function matchesDiet(recipe, diet) {
-            const text = (recipe.strMeal + " " + (recipe.strCategory || "") + " " +
-                Object.keys(recipe).filter(k => k.startsWith("strIngredient") && recipe[k])
-                    .map(k => recipe[k]).join(" ")).toLowerCase();
-            if (diet === "vegan") return !text.match(/\b(meat|chicken|beef|pork|fish|shrimp|egg|milk|cheese|butter|honey)\b/);
-            if (diet === "vegetarian") return !text.match(/\b(meat|chicken|beef|pork|fish|shrimp)\b/);
-            if (diet === "gluten-free") return !text.match(/\b(wheat|flour|bread|pasta|barley|rye)\b/);
-            if (diet === "dairy-free") return !text.match(/\b(milk|cheese|butter|cream|yogurt)\b/);
-            if (diet === "keto") return !text.match(/\b(rice|pasta|bread|potato|sugar|flour)\b/);
-            return true;
         }
         // Initialize
         renderDiets();
         renderIngredients();
+        // Load saved API key
+        if (apiKey) document.getElementById("apiKey").value = apiKey;
     </script>
 </body>
 </html>
