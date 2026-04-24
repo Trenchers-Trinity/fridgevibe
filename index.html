@@ -3,26 +3,28 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FridgeVibe</title>
+    <title>FridgeVibe • Real Recipes</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 </head>
-<body class="bg-zinc-950 text-white p-6 max-w-4xl mx-auto">
+<body class="bg-zinc-950 text-white p-6 max-w-5xl mx-auto">
     <h1 class="text-4xl font-bold mb-8 flex items-center gap-3">
         🥶 FridgeVibe
     </h1>
     <!-- Diet Filters -->
-    <div id="diet" class="flex flex-wrap gap-2 mb-8"></div>
-    <!-- Ingredient Input -->
+    <div class="mb-6">
+        <p class="text-zinc-400 mb-2">Diet Filters</p>
+        <div id="diet" class="flex flex-wrap gap-2"></div>
+    </div>
+    <!-- Input Area -->
     <div class="flex gap-3 mb-8">
         <input id="input" 
                class="flex-1 bg-zinc-900 border border-zinc-700 rounded-2xl px-6 py-4 text-lg focus:outline-none focus:border-emerald-500" 
-               placeholder="Add ingredient (e.g. chicken, rice, spinach)">      
+               placeholder="Add ingredient (e.g. chicken, rice, tomato)">
         <button onclick="addIngredient()" 
-                class="bg-emerald-500 hover:bg-emerald-600 px-8 py-4 rounded-2xl font-medium">
-            Add
-        </button> 
+                class="bg-emerald-500 hover:bg-emerald-600 px-8 rounded-2xl font-medium">Add</button>
         <button onclick="openCamera()" 
-                class="bg-blue-600 hover:bg-blue-700 px-8 py-4 rounded-2xl font-medium flex items-center gap-2">
+                class="bg-blue-600 hover:bg-blue-700 px-8 rounded-2xl font-medium flex items-center gap-2">
             📷 Camera
         </button>
     </div>
@@ -31,25 +33,24 @@
 
     <!-- Search Button -->
     <button onclick="findRecipes()" 
-            class="w-full bg-white text-black font-semibold py-5 rounded-3xl text-xl mb-10 hover:bg-emerald-400 transition">
-        🔍 Find Matching Recipes
+            class="w-full bg-white text-black font-semibold py-5 rounded-3xl text-xl mb-10 hover:bg-emerald-400 transition flex items-center justify-center gap-3">
+        <i class="fas fa-search"></i> Find Real Matching Recipes
     </button>
     <!-- Results -->
-    <div id="results" class="grid grid-cols-1 md:grid-cols-2 gap-6"></div>
+    <div id="results" class="grid grid-cols-1 md:grid-cols-2 gap-8"></div>
     <script>
         let ingredients = [];
         let selectedDiets = [];
-        const diets = ["vegan", "vegetarian", "gluten-free", "dairy-free", "keto"];
-        // Render diet buttons
+        const dietOptions = ["vegan", "vegetarian", "gluten-free", "dairy-free", "keto"];
+
         function renderDiets() {
-            document.getElementById("diet").innerHTML = diets.map(d => `
+            document.getElementById("diet").innerHTML = dietOptions.map(d => `
                 <button onclick="toggleDiet('${d}')" 
-                        class="px-6 py-3 bg-zinc-800 hover:bg-zinc-700 rounded-3xl transition ${selectedDiets.includes(d) ? 'bg-emerald-500 text-black' : ''}">
+                        class="px-6 py-3 bg-zinc-800 hover:bg-zinc-700 rounded-3xl transition ${selectedDiets.includes(d) ? 'bg-emerald-500 text-black font-medium' : ''}">
                     ${d}
                 </button>
             `).join('');
         }
-        // Toggle diet
         function toggleDiet(d) {
             if (selectedDiets.includes(d)) {
                 selectedDiets = selectedDiets.filter(item => item !== d);
@@ -58,70 +59,146 @@
             }
             renderDiets();
         }
-        // Add ingredient
         function addIngredient() {
             const val = document.getElementById("input").value.trim().toLowerCase();
             if (!val) return;
             if (ingredients.includes(val)) {
-                alert("This ingredient is already added!");
+                alert("Already added!");
                 return;
             }
             ingredients.push(val);
             document.getElementById("input").value = "";
             renderIngredients();
         }
-        // Render ingredients list
         function renderIngredients() {
             const html = ingredients.map((item, i) => `
                 <div class="bg-zinc-800 px-5 py-3 rounded-3xl inline-flex items-center gap-3">
                     ${item}
-                    <button onclick="removeIngredient(${i})" 
-                            class="text-red-400 hover:text-red-500 ml-2">✕</button>
+                    <button onclick="removeIngredient(${i})" class="text-red-400 hover:text-red-500">✕</button>
                 </div>
             `).join('');
             document.getElementById("list").innerHTML = html;
         }
-        // Remove ingredient
         function removeIngredient(i) {
             ingredients.splice(i, 1);
             renderIngredients();
         }
-
-        // Camera (placeholder for now)
         function openCamera() {
-            alert("📷 Camera scanner is coming soon!\n\nFor now, type ingredients manually.");
-            // We can replace this with full camera modal later
+            alert("📷 Camera feature coming in the next update!\n\nYou can add ingredients manually for now.");
         }
-        // Find Recipes (placeholder - we'll improve this next)
-        function findRecipes() {
+        // Real recipe search using TheMealDB
+        async function findRecipes() {
             if (ingredients.length === 0) {
-                alert("Please add some ingredients to your fridge first!");
+                alert("Please add some ingredients first!");
                 return;
             }
             const resultsDiv = document.getElementById("results");
             resultsDiv.innerHTML = `
-                <div class="col-span-2 text-center py-12 text-emerald-400">
-                    <p class="text-xl">Finding recipes for your fridge...</p>
-                    <p class="text-sm mt-4 text-zinc-400">Current ingredients: ${ingredients.join(", ")}</p>
-                </div>
-            `;
-            // Temporary demo results
-            setTimeout(() => {
-                resultsDiv.innerHTML = `
-                    <div class="bg-zinc-900 rounded-3xl p-6">
-                        <h3 class="text-2xl font-semibold mb-2">🥘 Garlic Chicken Stir Fry</h3>
-                        <p class="text-emerald-400">85% match with your fridge</p>
-                        <p class="text-red-400 mt-2">Missing: soy sauce, garlic</p>
-                    </div>
-                    <div class="bg-zinc-900 rounded-3xl p-6">
-                        <h3 class="text-2xl font-semibold mb-2">🥗 Veggie Omelette</h3>
-                        <p class="text-emerald-400">95% match</p>
-                        <p class="text-emerald-400 mt-2">✅ You have everything!</p>
+                <div class="col-span-2 text-center py-16">
+                    <i class="fas fa-spinner fa-spin text-5xl text-emerald-400"></i>
+                    <p class="mt-6 text-xl">Searching real recipes from TheMealDB...</p>
+                </div>`;
+            let allMeals = [];
+            // Search for each ingredient
+            for (let ing of ingredients) {
+                try {
+                    const res = await fetch(`https://www.themealdb.com/api/json/v1/1/filter.php?i=${encodeURIComponent(ing)}`);
+                    const data = await res.json();
+                    if (data.meals) allMeals = allMeals.concat(data.meals);
+                } catch (e) {}
+            }
+            // Remove duplicates
+            const uniqueMeals = Array.from(new Map(allMeals.map(m => [m.idMeal, m])).values());
+            let recipeCards = [];
+            for (let meal of uniqueMeals.slice(0, 30)) {
+                try {
+                    const detailRes = await fetch(`https://www.themealdb.com/api/json/v1/1/lookup.php?i=${meal.idMeal}`);
+                    const detailData = await detailRes.json();
+                    const recipe = detailData.meals[0];
+                    if (!recipe) continue;
+                    // Diet filtering
+                    let passesDiet = true;
+                    if (selectedDiets.length > 0) {
+                        passesDiet = selectedDiets.every(diet => matchesDiet(recipe, diet));
+                    }
+                    if (!passesDiet) continue;
+                    // Build have / missing
+                    let recipeIngredients = [];
+                    for (let i = 1; i <= 20; i++) {
+                        const key = `strIngredient${i}`;
+                        if (recipe[key] && recipe[key].trim()) {
+                            recipeIngredients.push(recipe[key].toLowerCase().trim());
+                        }
+                    }
+                    let have = [];
+                    let missing = [];
+                    recipeIngredients.forEach(rIng => {
+                        const found = ingredients.some(my => rIng.includes(my));
+                        if (found) have.push(rIng);
+                        else missing.push(rIng);
+                    });
+                    const matchScore = have.length + missing.length > 0 
+                        ? Math.round((have.length / (have.length + missing.length)) * 100) 
+                        : 50;
+                    recipeCards.push({
+                        ...recipe,
+                        have: [...new Set(have)],
+                        missing: [...new Set(missing)],
+                        matchScore
+                    });
+                } catch (e) {}
+            }
+            recipeCards.sort((a, b) => b.matchScore - a.matchScore);
+            if (recipeCards.length === 0) {
+                resultsDiv.innerHTML = `<div class="col-span-2 text-center py-16 text-zinc-400">No recipes found.<br>Try adding more common ingredients.</div>`;
+                return;
+            }
+            let html = '';
+            for (let r of recipeCards.slice(0, 12)) {
+                html += `
+                    <div class="bg-zinc-900 rounded-3xl overflow-hidden border border-zinc-800">
+                        <img src="${r.strMealThumb}" class="w-full h-56 object-cover">
+                        <div class="p-6">
+                            <div class="flex justify-between items-start mb-4">
+                                <h3 class="font-semibold text-xl line-clamp-2">${r.strMeal}</h3>
+                                <span class="text-emerald-400 font-medium">${r.matchScore}% match</span>
+                            </div>
+
+                            <div class="mb-4">
+                                <p class="text-xs uppercase text-zinc-500">You have:</p>
+                                <p class="text-sm text-emerald-300">${r.have.length ? r.have.slice(0, 4).join(', ') : 'None listed'}</p>
+                            </div>
+
+                            ${r.missing.length > 0 ? `
+                            <div class="mb-6">
+                                <p class="text-xs uppercase text-zinc-500">Missing (${r.missing.length}):</p>
+                                <div class="flex flex-wrap gap-2 mt-2">
+                                    ${r.missing.slice(0, 6).map(m => `<span class="bg-red-900 text-red-300 text-xs px-3 py-1 rounded-2xl">${m}</span>`).join('')}
+                                </div>
+                            </div>` : `<div class="text-emerald-400 mb-6">✅ You have everything!</div>`}
+                            <a href="https://www.themealdb.com/meal/${r.idMeal}" 
+                               target="_blank"
+                               class="block text-center bg-zinc-800 hover:bg-zinc-700 py-4 rounded-2xl font-medium transition">
+                                View Full Recipe & Instructions →
+                            </a>
+                        </div>
                     </div>
                 `;
-            }, 800);
+            }
+            resultsDiv.innerHTML = html;
         }
-        // Initialize app
+        function matchesDiet(recipe, diet) {
+            const text = (recipe.strMeal + " " + (recipe.strCategory || "") + " " +
+                Object.keys(recipe).filter(k => k.startsWith("strIngredient") && recipe[k])
+                    .map(k => recipe[k]).join(" ")).toLowerCase();
+            if (diet === "vegan") return !text.match(/\b(meat|chicken|beef|pork|fish|shrimp|egg|milk|cheese|butter|honey)\b/);
+            if (diet === "vegetarian") return !text.match(/\b(meat|chicken|beef|pork|fish|shrimp)\b/);
+            if (diet === "gluten-free") return !text.match(/\b(wheat|flour|bread|pasta|barley|rye)\b/);
+            if (diet === "dairy-free") return !text.match(/\b(milk|cheese|butter|cream|yogurt)\b/);
+            if (diet === "keto") return !text.match(/\b(rice|pasta|bread|potato|sugar|flour)\b/);
+            return true;
+        }
+        // Initialize
         renderDiets();
         renderIngredients();
     </script>
