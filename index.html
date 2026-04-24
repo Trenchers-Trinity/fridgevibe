@@ -26,7 +26,7 @@
     <div class="flex gap-3 mb-8">
         <input id="input" 
                class="flex-1 bg-zinc-900 border border-zinc-700 rounded-2xl px-6 py-4 text-lg focus:outline-none focus:border-emerald-500" 
-               placeholder="Add ingredient (e.g. chicken, rice)">
+               placeholder="Add ingredient (e.g. chicken, marinara sauce, cheese)">
         <button onclick="addIngredient()" 
                 class="bg-emerald-500 hover:bg-emerald-600 px-8 rounded-2xl font-medium">Add</button>
         <button onclick="openCamera()" 
@@ -43,13 +43,13 @@
     </button>
     <!-- Results -->
     <div id="results" class="grid grid-cols-1 md:grid-cols-2 gap-8"></div>
-    <!-- Camera Modal -->
+    <!-- Camera Modal (same as before) -->
     <div id="camera-modal" class="hidden fixed inset-0 bg-black/95 z-50 flex items-center justify-center p-4">
         <div class="bg-zinc-900 rounded-3xl max-w-lg w-full overflow-hidden">
             <div class="p-5 border-b border-zinc-700 flex justify-between items-center">
                 <h3 class="font-semibold text-xl">📸 Scan Your Fridge</h3>
                 <button onclick="closeCameraModal()" class="text-3xl text-zinc-400 hover:text-white">×</button>
-            </div>    
+            </div>   
             <div class="p-5">
                 <video id="video" autoplay playsinline class="w-full rounded-2xl bg-black aspect-video object-cover"></video>
             </div>
@@ -61,13 +61,12 @@
                     Cancel
                 </button>
             </div>
-            <!-- Photo Review -->
             <div id="photo-review" class="hidden p-5 border-t border-zinc-700">
                 <img id="captured-photo" class="w-full rounded-2xl mb-4">
                 <p class="text-sm text-zinc-400 mb-2">List the ingredients you see (one per line):</p>
                 <textarea id="extracted-items" rows="6" 
                           class="w-full bg-zinc-800 border border-zinc-700 rounded-2xl p-4 focus:outline-none focus:border-emerald-500"
-                          placeholder="chicken&#10;broccoli&#10;rice"></textarea>
+                          placeholder="chicken&#10;marinara sauce&#10;cheese&#10;bread"></textarea>
                 <div class="flex gap-3 mt-5">
                     <button onclick="addScannedIngredients()" class="flex-1 bg-emerald-500 hover:bg-emerald-600 py-4 rounded-2xl font-medium">
                         ✅ Add to Fridge
@@ -113,13 +112,11 @@
             `).join('');
             document.getElementById("list").innerHTML = html;
         }
-
         function removeIngredient(i) {
             ingredients.splice(i, 1);
             renderIngredients();
         }
-
-        // Camera Functions
+        // Camera functions (unchanged from last version)
         function openCamera() {
             document.getElementById("camera-modal").classList.remove("hidden");
             document.getElementById("photo-review").classList.add("hidden");
@@ -138,7 +135,7 @@
                 videoStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
                 video.srcObject = videoStream;
             } catch (err) {
-                alert("Could not access camera. Please allow permission.");
+                alert("Could not access camera.");
                 closeCameraModal();
             }
         }
@@ -148,8 +145,7 @@
             canvas.width = video.videoWidth || 1280;
             canvas.height = video.videoHeight || 720;
             canvas.getContext("2d").drawImage(video, 0, 0);
-            const photoImg = document.getElementById("captured-photo");
-            photoImg.src = canvas.toDataURL("image/jpeg", 0.85);
+            document.getElementById("captured-photo").src = canvas.toDataURL("image/jpeg", 0.85);
             document.getElementById("photo-review").classList.remove("hidden");
         }
         function retakePhoto() {
@@ -157,26 +153,25 @@
             startCamera();
         }
         function addScannedIngredients() {
-            const textarea = document.getElementById("extracted-items");
-            const lines = textarea.value.trim().split("\n").filter(line => line.trim() !== "");
-
+            const lines = document.getElementById("extracted-items").value.trim().split("\n").filter(l => l.trim() !== "");
             lines.forEach(line => {
                 const item = line.trim().toLowerCase();
                 if (item && !ingredients.includes(item)) ingredients.push(item);
             });
             renderIngredients();
             closeCameraModal();
-            if (lines.length > 0) alert(`Added ${lines.length} ingredients from your photo!`);
+            if (lines.length > 0) alert(`Added ${lines.length} ingredients!`);
         }
-        // Real Recipe Search - Sorted by least missing first
+        // Improved Recipe Search
         async function findRecipes() {
             if (ingredients.length === 0) {
-                alert("Please add some ingredients first!");
+                alert("Add some ingredients first!");
                 return;
             }
             const resultsDiv = document.getElementById("results");
-            resultsDiv.innerHTML = `<div class="col-span-2 text-center py-16"><i class="fas fa-spinner fa-spin text-5xl text-emerald-400"></i><p class="mt-6">Finding real recipes...</p></div>`;
+            resultsDiv.innerHTML = `<div class="col-span-2 text-center py-16"><i class="fas fa-spinner fa-spin text-5xl text-emerald-400"></i><p class="mt-6">Searching real recipes...</p></div>`;
             let allMeals = [];
+            // Search using each ingredient
             for (let ing of ingredients) {
                 try {
                     const res = await fetch(`https://www.themealdb.com/api/json/v1/1/filter.php?i=${encodeURIComponent(ing)}`);
@@ -186,7 +181,7 @@
             }
             const uniqueMeals = Array.from(new Map(allMeals.map(m => [m.idMeal, m])).values());
             let recipeCards = [];
-            for (let meal of uniqueMeals.slice(0, 40)) {
+            for (let meal of uniqueMeals.slice(0, 50)) {
                 try {
                     const detailRes = await fetch(`https://www.themealdb.com/api/json/v1/1/lookup.php?i=${meal.idMeal}`);
                     const detailData = await detailRes.json();
@@ -198,29 +193,36 @@
                         passesDiet = selectedDiets.every(diet => matchesDiet(recipe, diet));
                     }
                     if (!passesDiet) continue;
-                    // Build have / missing
+                    // Extract recipe ingredients
                     let recipeIngredients = [];
                     for (let i = 1; i <= 20; i++) {
                         const key = `strIngredient${i}`;
-                        if (recipe[key] && recipe[key].trim()) recipeIngredients.push(recipe[key].toLowerCase().trim());
+                        if (recipe[key] && recipe[key].trim()) {
+                            recipeIngredients.push(recipe[key].toLowerCase().trim());
+                        }
                     }
-                    let have = [], missing = [];
+                    let have = [];
+                    let missing = [];
                     recipeIngredients.forEach(rIng => {
-                        const found = ingredients.some(my => rIng.includes(my));
+                        const found = ingredients.some(my => rIng.includes(my) || my.includes(rIng));
                         if (found) have.push(rIng);
                         else missing.push(rIng);
                     });
                     const matchScore = have.length + missing.length > 0 
                         ? Math.round((have.length / (have.length + missing.length)) * 100) 
-                        : 0;
-                    recipeCards.push({ ...recipe, have: [...new Set(have)], missing: [...new Set(missing)], matchScore });
+                        : 30;
+                    recipeCards.push({
+                        ...recipe,
+                        have: [...new Set(have)],
+                        missing: [...new Set(missing)],
+                        matchScore
+                    });
                 } catch (e) {}
             }
-            // Sort by highest match (least missing) first
+            // Sort by best match (least missing) first
             recipeCards.sort((a, b) => b.matchScore - a.matchScore);
-
             if (recipeCards.length === 0) {
-                resultsDiv.innerHTML = `<div class="col-span-2 text-center py-16 text-zinc-400">No matching recipes found. Try adding more ingredients.</div>`;
+                resultsDiv.innerHTML = `<div class="col-span-2 text-center py-16 text-zinc-400">No close matches found.<br>Try adding more common ingredients like "pasta", "tomato", "onion".</div>`;
                 return;
             }
             let html = '';
@@ -231,21 +233,21 @@
                         <div class="p-6">
                             <div class="flex justify-between mb-4">
                                 <h3 class="font-semibold text-xl">${r.strMeal}</h3>
-                                <span class="text-emerald-400">${r.matchScore}% match</span>
+                                <span class="text-emerald-400 font-medium">${r.matchScore}% match</span>
                             </div>
                             <div class="mb-4">
                                 <p class="text-xs text-zinc-500">You have:</p>
-                                <p class="text-emerald-300">${r.have.length ? r.have.slice(0,4).join(", ") : "None"}</p>
+                                <p class="text-emerald-300">${r.have.length ? r.have.slice(0,5).join(", ") : "None listed"}</p>
                             </div>
                             ${r.missing.length > 0 ? `
-                            <div>
+                            <div class="mb-6">
                                 <p class="text-xs text-zinc-500">Missing (${r.missing.length}):</p>
                                 <div class="flex flex-wrap gap-2 mt-2">
                                     ${r.missing.slice(0,6).map(m => `<span class="missing-pill text-xs px-3 py-1 rounded-2xl">${m}</span>`).join("")}
                                 </div>
-                            </div>` : `<div class="text-emerald-400">✅ You have everything!</div>`}
+                            </div>` : `<div class="text-emerald-400 mb-6">✅ You have everything!</div>`}
                             <a href="https://www.themealdb.com/meal/${r.idMeal}" target="_blank" 
-                               class="block mt-6 text-center bg-zinc-800 hover:bg-zinc-700 py-4 rounded-2xl font-medium">
+                               class="block text-center bg-zinc-800 hover:bg-zinc-700 py-4 rounded-2xl font-medium">
                                 View Full Recipe →
                             </a>
                         </div>
@@ -265,7 +267,7 @@
             if (diet === "keto") return !text.match(/\b(rice|pasta|bread|potato|sugar|flour)\b/);
             return true;
         }
-        // Start app
+        // Start the app
         renderDiets();
         renderIngredients();
     </script>
